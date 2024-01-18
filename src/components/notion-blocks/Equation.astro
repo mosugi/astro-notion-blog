@@ -10,7 +10,7 @@ const { block } = Astro.props
 ---
 
 <div
-  class="equation"
+  class="not-prose equation"
   set:html={katex.renderToString(block.Equation.Expression, {
     throwOnError: false,
   })}
