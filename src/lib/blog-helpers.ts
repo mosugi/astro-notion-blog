@@ -1,5 +1,5 @@
 import fetch from 'node-fetch'
-import { BASE_PATH, REQUEST_TIMEOUT_MS } from '../server-constants'
+import { BASE_PATH, REQUEST_TIMEOUT_MS, SUB_PATH } from '../server-constants';
 import type {
   Block,
   Heading1,
@@ -131,23 +131,23 @@ export const getNavLink = (nav: string) => {
 }
 
 export const getPostLink = (slug: string) => {
-  return pathJoin(BASE_PATH, `/posts/${slug}`)
+  return pathJoin(BASE_PATH, `/${SUB_PATH}/${slug}`)
 }
 
 export const getTagLink = (tag: string) => {
-  return pathJoin(BASE_PATH, `/posts/tag/${encodeURIComponent(tag)}`)
+  return pathJoin(BASE_PATH, `/${SUB_PATH}/tag/${encodeURIComponent(tag)}`)
 }
 
 export const getPageLink = (page: number, tag: string) => {
   if (page === 1) {
-    return tag ? getTagLink(tag) : pathJoin(BASE_PATH, '/')
+    return tag ? getTagLink(tag) : pathJoin(BASE_PATH, `/${SUB_PATH}`)
   }
   return tag
     ? pathJoin(
         BASE_PATH,
-        `/posts/tag/${encodeURIComponent(tag)}/page/${page.toString()}`
+        `/${SUB_PATH}/tag/${encodeURIComponent(tag)}/page/${page.toString()}`
       )
-    : pathJoin(BASE_PATH, `/posts/page/${page.toString()}`)
+    : pathJoin(BASE_PATH, `/${SUB_PATH}/page/${page.toString()}`)
 }
 
 export const getDateStr = (date: string) => {
