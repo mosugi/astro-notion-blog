@@ -64,13 +64,13 @@ let dbCache: Database | null = null
 
 const numberOfRetry = 2
 
-export async function getAllPosts(): Promise<Post[]> {
-  if (postsCache !== null) {
+export async function getAllPosts(databaseId: string = DATABASE_ID,useCache:boolean = true): Promise<Post[]> {
+  if (useCache && postsCache !== null) {
     return Promise.resolve(postsCache)
   }
 
   const params: requestParams.QueryDatabase = {
-    database_id: DATABASE_ID,
+    database_id: databaseId,
     filter: {
       and: [
         {
@@ -127,6 +127,12 @@ export async function getAllPosts(): Promise<Post[]> {
     params['start_cursor'] = res.next_cursor as string
   }
 
+  if(!useCache){
+    return results
+      .filter((pageObject) => _validPageObject(pageObject))
+      .map((pageObject) => _buildPost(pageObject))
+  }
+
   postsCache = results
     .filter((pageObject) => _validPageObject(pageObject))
     .map((pageObject) => _buildPost(pageObject))
@@ -135,6 +141,11 @@ export async function getAllPosts(): Promise<Post[]> {
 
 export async function getPosts(pageSize = 10): Promise<Post[]> {
   const allPosts = await getAllPosts()
+  return allPosts.slice(0, pageSize)
+}
+
+export async function getPostsWithDatabaseId(databaseId:string,pageSize = 10): Promise<Post[]> {
+  const allPosts = await getAllPosts(databaseId,false)
   return allPosts.slice(0, pageSize)
 }
 
@@ -420,13 +431,13 @@ export async function downloadFile(url: URL) {
   }
 }
 
-export async function getDatabase(): Promise<Database> {
-  if (dbCache !== null) {
+export async function getDatabase(databaseId: string = DATABASE_ID,useCache:boolean = true): Promise<Database> {
+  if (useCache && dbCache !== null) {
     return Promise.resolve(dbCache)
   }
 
   const params: requestParams.RetrieveDatabase = {
-    database_id: DATABASE_ID,
+    database_id: databaseId,
   }
 
   const res = await retry(
@@ -486,7 +497,7 @@ export async function getDatabase(): Promise<Database> {
     Cover: cover,
   }
 
-  dbCache = database
+  if (useCache) dbCache = database
   return database
 }
 
