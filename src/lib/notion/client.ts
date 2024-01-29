@@ -62,6 +62,7 @@ const client = new Client({
 
 let postsCache: Post[] | null = null
 let dbCache: Database | null = null
+let fixedPagesCache: FixedPage[] | null = null
 
 const numberOfRetry = 2
 
@@ -135,6 +136,9 @@ export async function getAllPosts(): Promise<Post[]> {
 }
 
 export async function getAllFixedPages(databaseId: string): Promise<FixedPage[]> {
+  if (fixedPagesCache !== null) {
+    return Promise.resolve(fixedPagesCache)
+  }
   const params: requestParams.QueryDatabase = {
     database_id: databaseId,
     filter: {
@@ -150,7 +154,7 @@ export async function getAllFixedPages(databaseId: string): Promise<FixedPage[]>
     sorts: [
       {
         property: 'Rank',
-        direction: 'descending',
+        direction: 'ascending',
       },
     ],
     page_size: 100,
@@ -187,9 +191,11 @@ export async function getAllFixedPages(databaseId: string): Promise<FixedPage[]>
     params['start_cursor'] = res.next_cursor as string
   }
 
-  return results
+  fixedPagesCache = results
     .filter((pageObject) => _validPageObjectForFixedPage(pageObject))
     .map((pageObject) => _buildFixedPage(pageObject))
+
+  return fixedPagesCache
 }
 
 export async function getPosts(pageSize = 10): Promise<Post[]> {
