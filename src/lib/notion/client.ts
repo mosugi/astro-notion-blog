@@ -15,6 +15,7 @@ import type * as requestParams from './request-params'
 import type {
   Database,
   Post,
+  FixedPage,
   Block,
   Paragraph,
   Heading1,
@@ -64,13 +65,13 @@ let dbCache: Database | null = null
 
 const numberOfRetry = 2
 
-export async function getAllPosts(databaseId: string = DATABASE_ID,useCache:boolean = true): Promise<Post[]> {
-  if (useCache && postsCache !== null) {
+export async function getAllPosts(): Promise<Post[]> {
+  if (postsCache !== null) {
     return Promise.resolve(postsCache)
   }
 
   const params: requestParams.QueryDatabase = {
-    database_id: databaseId,
+    database_id: DATABASE_ID,
     filter: {
       and: [
         {
@@ -127,25 +128,72 @@ export async function getAllPosts(databaseId: string = DATABASE_ID,useCache:bool
     params['start_cursor'] = res.next_cursor as string
   }
 
-  if(!useCache){
-    return results
-      .filter((pageObject) => _validPageObject(pageObject))
-      .map((pageObject) => _buildPost(pageObject))
-  }
-
   postsCache = results
     .filter((pageObject) => _validPageObject(pageObject))
     .map((pageObject) => _buildPost(pageObject))
   return postsCache
 }
 
-export async function getPosts(pageSize = 10): Promise<Post[]> {
-  const allPosts = await getAllPosts()
-  return allPosts.slice(0, pageSize)
+export async function getAllFixedPages(databaseId: string): Promise<FixedPage[]> {
+  const params: requestParams.QueryDatabase = {
+    database_id: databaseId,
+    filter: {
+      and: [
+        {
+          property: 'Published',
+          checkbox: {
+            equals: true,
+          },
+        }
+      ],
+    },
+    sorts: [
+      {
+        property: 'Rank',
+        direction: 'descending',
+      },
+    ],
+    page_size: 100,
+  }
+
+  let results: responses.PageObject[] = []
+  while (true) {
+    const res = await retry(
+      async (bail) => {
+        try {
+          return (await client.databases.query(
+            params as any // eslint-disable-line @typescript-eslint/no-explicit-any
+          )) as responses.QueryDatabaseResponse
+        } catch (error: unknown) {
+          if (error instanceof APIResponseError) {
+            if (error.status && error.status >= 400 && error.status < 500) {
+              bail(error)
+            }
+          }
+          throw error
+        }
+      },
+      {
+        retries: numberOfRetry,
+      }
+    )
+
+    results = results.concat(res.results)
+
+    if (!res.has_more) {
+      break
+    }
+
+    params['start_cursor'] = res.next_cursor as string
+  }
+
+  return results
+    .filter((pageObject) => _validPageObjectForFixedPage(pageObject))
+    .map((pageObject) => _buildFixedPage(pageObject))
 }
 
-export async function getPostsWithDatabaseId(databaseId:string,pageSize = 10): Promise<Post[]> {
-  const allPosts = await getAllPosts(databaseId,false)
+export async function getPosts(pageSize = 10): Promise<Post[]> {
+  const allPosts = await getAllPosts()
   return allPosts.slice(0, pageSize)
 }
 
@@ -431,13 +479,13 @@ export async function downloadFile(url: URL) {
   }
 }
 
-export async function getDatabase(databaseId: string = DATABASE_ID,useCache:boolean = true): Promise<Database> {
-  if (useCache && dbCache !== null) {
+export async function getDatabase(): Promise<Database> {
+  if (dbCache !== null) {
     return Promise.resolve(dbCache)
   }
 
   const params: requestParams.RetrieveDatabase = {
-    database_id: databaseId,
+    database_id: DATABASE_ID,
   }
 
   const res = await retry(
@@ -497,7 +545,7 @@ export async function getDatabase(databaseId: string = DATABASE_ID,useCache:bool
     Cover: cover,
   }
 
-  if (useCache) dbCache = database
+  dbCache = database
   return database
 }
 
@@ -936,6 +984,16 @@ function _validPageObject(pageObject: responses.PageObject): boolean {
   )
 }
 
+function _validPageObjectForFixedPage(pageObject: responses.PageObject): boolean {
+  const prop = pageObject.properties
+  return (
+    !!prop.Page.title &&
+    prop.Page.title.length > 0 &&
+    !!prop.Slug.rich_text &&
+    prop.Slug.rich_text.length > 0
+  )
+}
+
 function _buildPost(pageObject: responses.PageObject): Post {
   const prop = pageObject.properties
 
@@ -1002,6 +1060,23 @@ function _buildPost(pageObject: responses.PageObject): Post {
   }
 
   return post
+}
+
+function _buildFixedPage(pageObject: responses.PageObject): FixedPage {
+  const prop = pageObject.properties
+
+  const fixedPage: FixedPage = {
+    PageId: pageObject.id,
+    Title: prop.Page.title
+      ? prop.Page.title.map((richText) => richText.plain_text).join('')
+      : '',
+    Slug: prop.Slug.rich_text
+      ? prop.Slug.rich_text.map((richText) => richText.plain_text).join('')
+      : '',
+    Rank: prop.Rank.number ? prop.Rank.number : 0,
+  }
+
+  return fixedPage
 }
 
 function _buildRichText(richTextObject: responses.RichTextObject): RichText {

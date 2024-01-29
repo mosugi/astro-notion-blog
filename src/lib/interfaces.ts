@@ -18,6 +18,13 @@ export interface Post {
   Rank: number
 }
 
+export interface FixedPage {
+  PageId: string
+  Title: string
+  Slug: string
+  Rank: number
+}
+
 export interface Block {
   Id: string
   Type: string
