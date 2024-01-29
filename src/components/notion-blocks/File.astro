@@ -19,7 +19,7 @@ try {
 const filename = decodeURIComponent(url.pathname.split('/').slice(-1)[0])
 ---
 
-<div class="file">
+<div class="file not-prose">
   <div>
     {
       url && (
@@ -27,10 +27,12 @@ const filename = decodeURIComponent(url.pathname.split('/').slice(-1)[0])
           href={block.File.External ? url.String() : filePath(url)}
           target="_blank"
           rel="noopener noreferrer"
+          class="not-prose"
         >
           <img
             src="https://www.notion.so/icons/document_gray.svg"
             alt="File icon in a file block"
+            class="not-prose"
           />{' '}
           {filename}
         </a>
@@ -45,7 +47,7 @@ const filename = decodeURIComponent(url.pathname.split('/').slice(-1)[0])
   }
 
   .file a {
-    display: block;
+    display: flex;
     padding: 0.5rem 0.2rem 0.4rem;
     border-radius: var(--radius);
     color: var(--fg);
