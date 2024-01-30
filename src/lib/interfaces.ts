@@ -23,6 +23,7 @@ export interface FixedPage {
   Title: string
   Slug: string
   Rank: number
+  ParentId: string
 }
 
 export interface Block {

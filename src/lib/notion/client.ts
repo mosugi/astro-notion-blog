@@ -1080,6 +1080,7 @@ function _buildFixedPage(pageObject: responses.PageObject): FixedPage {
       ? prop.Slug.rich_text.map((richText) => richText.plain_text).join('')
       : '',
     Rank: prop.Rank.number ? prop.Rank.number : 0,
+    ParentId: prop.ParentItem.relation?.length > 0 ? prop.ParentItem.relation[0].id : '',
   }
 
   return fixedPage
