@@ -135,10 +135,18 @@ export async function getAllPosts(): Promise<Post[]> {
   return postsCache
 }
 
-export async function getAllFixedPages(databaseId: string): Promise<FixedPage[]> {
+export async function getAllFixedPages(databaseId: string, sortRank: boolean = true): Promise<FixedPage[]> {
   if (fixedPagesCache !== null) {
-    return Promise.resolve(fixedPagesCache)
+    return Promise.resolve(fixedPagesCache);
   }
+
+  const sorts = sortRank ? [
+    {
+      property: 'Rank',
+      direction: 'ascending',
+    },
+  ] : [];
+
   const params: requestParams.QueryDatabase = {
     database_id: databaseId,
     filter: {
@@ -151,14 +159,9 @@ export async function getAllFixedPages(databaseId: string): Promise<FixedPage[]>
         }
       ],
     },
-    sorts: [
-      {
-        property: 'Rank',
-        direction: 'ascending',
-      },
-    ],
+    sorts: sorts,
     page_size: 100,
-  }
+  };
 
   let results: responses.PageObject[] = []
   while (true) {
