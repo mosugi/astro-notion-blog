@@ -62,7 +62,8 @@ const client = new Client({
 
 let postsCache: Post[] | null = null
 let dbCache: Database | null = null
-let fixedPagesCache: FixedPage[] | null = null
+let fixedCache: FixedPage[] | null = null
+let embedCache: FixedPage[] | null = null
 
 const numberOfRetry = 2
 
@@ -135,11 +136,23 @@ export async function getAllPosts(): Promise<Post[]> {
   return postsCache
 }
 
-export async function getAllFixedPages(databaseId: string, sortRank: boolean = true): Promise<FixedPage[]> {
-  if (fixedPagesCache !== null) {
-    return Promise.resolve(fixedPagesCache);
+export async function getAllFixedPagesWithCache(databaseId: string, sortRank: boolean = true): Promise<FixedPage[]> {
+  if (fixedCache !== null) {
+    return Promise.resolve(fixedCache)
   }
+  fixedCache = await getAllFixedPages(databaseId, sortRank)
+  return fixedCache
+}
 
+export async function getAllEmbedPagesWithCache(databaseId: string, sortRank: boolean = false): Promise<FixedPage[]> {
+  if (embedCache !== null) {
+    return Promise.resolve(embedCache)
+  }
+  embedCache = await getAllFixedPages(databaseId, sortRank)
+  return embedCache
+}
+
+export async function getAllFixedPages(databaseId: string, sortRank: boolean = true): Promise<FixedPage[]> {
   const sorts = sortRank ? [
     {
       property: 'Rank',
@@ -194,11 +207,9 @@ export async function getAllFixedPages(databaseId: string, sortRank: boolean = t
     params['start_cursor'] = res.next_cursor as string
   }
 
-  fixedPagesCache = results
+  return results
     .filter((pageObject) => _validPageObjectForFixedPage(pageObject))
     .map((pageObject) => _buildFixedPage(pageObject))
-
-  return fixedPagesCache
 }
 
 export async function getPosts(pageSize = 10): Promise<Post[]> {
@@ -1082,8 +1093,8 @@ function _buildFixedPage(pageObject: responses.PageObject): FixedPage {
     Slug: prop.Slug.rich_text
       ? prop.Slug.rich_text.map((richText) => richText.plain_text).join('')
       : '',
-    Rank: prop.Rank.number ? prop.Rank.number : 0,
-    ParentId: prop.ParentItem.relation?.length > 0 ? prop.ParentItem.relation[0].id : '',
+    Rank: prop?.Rank?.number ? prop.Rank.number : 0,
+    ParentId: prop?.ParentItem?.relation?.length > 0 ? prop.ParentItem.relation[0].id : '',
   }
 
   return fixedPage
